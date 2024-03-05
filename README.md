@@ -2,7 +2,13 @@
 
 ## Popis projektu
 
-Tento projekt se zabývá vývojem informačního systému (IS) pro lékárnu. Cílem systému je správa a evidence vydávání léků občanům, a to jak na předpis, tak i za hotové. Některé léky jsou vydávány pouze na základě lékařského předpisu. Část ceny léků hradí zdravotní pojišťovna, a proto systém musí umožnit evidenci těchto platů. Dále musí být zajištěn import příspěvků na léky od zdravotních pojišťoven, které se mohou čas od času měnit. IS musí umožnit export výkazů pro zdravotní pojišťovny a musí být propojen se skladovým systémem, aby bylo možné kontrolovat dostupnost léků na skladě. Léky jsou identifikovány pomocí číselného kódu nebo názvu.
+Tento projekt se zabývá vývojem informačního systému (IS) pro lékárnu. 
+Cílem systému je správa a `evidence vydávání léků` občanům, a to jak `na předpis`, tak i `za hotové`. 
+Některé léky jsou vydávány pouze na základě lékařského předpisu. 
+`Část ceny léků hradí zdravotní pojišťovna`, a proto systém musí umožnit `evidenci těchto platů`. 
+Dále musí být zajištěn `import příspěvků na léky` od zdravotních pojišťoven, které se `mohou čas od času měnit`. 
+IS musí umožnit `export výkazů pro zdravotní pojišťovny` a musí být `propojen se skladovým systémem`, aby bylo možné `kontrolovat dostupnost léků na skladě`. 
+Léky jsou identifikovány pomocí `číselného kódu` nebo `názvu`.
 
 ## Funkce systému
 
