@@ -58,6 +58,7 @@ CREATE TABLE VydejPredpis
 
 CREATE TABLE Uskladnen
 (
+    PRIMARY KEY (Cislo_pobocky, ID_leku),
     Cislo_pobocky NUMBER NOT NULL,
     ID_leku       NUMBER NOT NULL,
     Mnozstvi      NUMBER NOT NULL,
@@ -69,6 +70,7 @@ CREATE TABLE Uskladnen
 
 CREATE TABLE Hradi
 (
+    PRIMARY KEY (Ciclo_pojistovny, ID_leku),
     Ciclo_pojistovny NUMBER NOT NULL,
     ID_leku          NUMBER NOT NULL,
     Castka           NUMBER NOT NULL,
@@ -80,6 +82,7 @@ CREATE TABLE Hradi
 
 CREATE TABLE Objednan
 (
+    PRIMARY KEY (ID_objednavky, ID_leku),
     ID_objednavky NUMBER NOT NULL,
     ID_leku       NUMBER NOT NULL,
     Mnozstvi      NUMBER NOT NULL,
