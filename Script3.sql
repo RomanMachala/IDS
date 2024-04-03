@@ -141,7 +141,7 @@ INSERT INTO Objednan (ID_objednavky, ID_leku, Mnozstvi)
 VALUES (2, 2, 25);
 
 
--- Zadanie 2 --
+-- Zadanie 3 --
 
 -- 1. Dotaz využívající spojení dvou tabulek - získání informací o objednávkách a názvu léku
 SELECT O.Jmeno_zakaznika, O.Prijmeni_zakaznika, L.Nazev AS Nazev_leku
