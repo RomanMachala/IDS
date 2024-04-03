@@ -141,6 +141,50 @@ INSERT INTO Objednan (ID_objednavky, ID_leku, Mnozstvi)
 VALUES (2, 2, 25);
 
 
+-- Zadanie 2 --
+
+-- 1. Dotaz využívající spojení dvou tabulek - získání informací o objednávkách a názvu léku
+SELECT O.Jmeno_zakaznika, O.Prijmeni_zakaznika, L.Nazev AS Nazev_leku
+FROM Objednavka O
+         JOIN Lek L ON O.ID_leku = L.ID_leku;
+
+-- 2. Dotaz využívající spojení tří tabulek - získání informací o vydaných léčivech, názvu léku a názvu pobočky
+SELECT V.Mnozstvi, L.Nazev AS Nazev_leku, P.Nazev AS Nazev_pobocky
+FROM Vydej V
+         JOIN Lek L ON V.ID_leku = L.ID_leku
+         JOIN Pobocka P ON V.Cislo_pobocky = P.Cislo_pobocky;
+
+-- 3. Dotaz s klauzulí GROUP BY a agregační funkcí - získání celkového množství vydaného léku
+SELECT ID_leku, SUM(Mnozstvi) AS Celkove_mnozstvi
+FROM Vydej
+GROUP BY ID_leku;
+
+-- 4. Dotaz s klauzulí GROUP BY a agregační funkcí - získání počtu objednávek na každou pobočku
+SELECT Cislo_pobocky, COUNT(*) AS Pocet_objednavek
+FROM Objednavka
+GROUP BY Cislo_pobocky;
+
+-- 5. Dotaz obsahující predikát EXISTS - zjištění, zda existuje objednávka pro konkrétní lék
+SELECT ID_leku, Nazev
+FROM Lek L
+WHERE EXISTS (SELECT 1
+              FROM Objednavka O
+              WHERE O.ID_leku = L.ID_leku);
+
+-- 6. Dotaz s predikátem IN s vnořeným selectem - získání informací o objednávkách pro vybrané léky
+SELECT *
+FROM Objednavka
+WHERE ID_leku IN (SELECT ID_leku
+                  FROM Lek
+                  WHERE Cena > 20);
+
+-- 7. Dotaz využívající spojení dvou tabulek - získání informací o léku, který má nejvyšší cenu
+SELECT L.Nazev, L.Cena
+FROM Lek L
+         JOIN (SELECT MAX(Cena) AS Max_cena
+               FROM Lek) MaxCena ON L.Cena = MaxCena.Max_cena;
+
+
 /*
 DROP TABLE Pobocka;
 DROP TABLE Lek;
