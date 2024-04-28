@@ -338,18 +338,21 @@ FROM Lek L
         Lek l ON o.ID_leku = l.ID_leku;
 
     -- Materializovany pohled, ktery uklada data reprezentujici vypisy o prodejich (vhodne napriklad pro mesicni vypisy)  --
-    CREATE MATERIALIZED VIEW ProdejniZprava AS
-    SELECT
-        l.Nazev AS Nazev_Leku,
-        SUM(v.Mnozstvi) AS Celkove_Prodano,
-        SUM(v.Mnozstvi * l.Cena) AS Trzba
-    FROM
-        Lek l
-    JOIN
-        Vydej v ON l.ID_leku = v.ID_leku
-    GROUP BY
-        l.Nazev;
-    WITH DATA
+    CREATE MATERIALIZED VIEW ProdejniZprava
+        BUILD IMMEDIATE
+        REFRESH COMPLETE
+        ON DEMAND
+        AS
+        SELECT
+            l.Nazev AS Nazev_Leku,
+            SUM(v.Mnozstvi) AS Celkove_Prodano,
+            SUM(v.Mnozstvi * l.Cena) AS Trzba
+        FROM
+            Lek l
+        JOIN
+            Vydej v ON l.ID_leku = v.ID_leku
+        GROUP BY
+            l.Nazev;
 
 
 -- Demonstrace pohledu pomoci SELECT dotazu --
