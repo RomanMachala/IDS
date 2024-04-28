@@ -219,6 +219,8 @@ INSERT INTO Objednavka (Jmeno_zakaznika, Prijmeni_zakaznika, Datum, ID_leku, Cis
 VALUES ('Jan', 'Novák', TO_DATE('2024-03-20', 'YYYY-MM-DD'), 1, 1);
 INSERT INTO Objednavka (Jmeno_zakaznika, Prijmeni_zakaznika, Datum, ID_leku, Cislo_pobocky)
 VALUES ('Petra', 'Kovářová', TO_DATE('2024-03-21', 'YYYY-MM-DD'), 2, 2);
+INSERT INTO Objednavka (Jmeno_zakaznika, Prijmeni_zakaznika, Datum, ID_leku, Cislo_pobocky)
+VALUES ('Petra', 'Kovářová', TO_DATE('2024-03-05', 'YYYY-MM-DD'), 1, 1);
 
 -- Insert data into Pojistovna table
 INSERT INTO Pojistovna (Cislo_pojistovny, Nazev)
@@ -399,40 +401,6 @@ WHERE Celkove_Prodano > 100;
 SELECT SUM(Trzba) AS Celkova_Trzba
 FROM ProdejniZprava;
 
--- SLOW
-EXPLAIN PLAN FOR
-SELECT l.Nazev         AS Nazev_Leku,
-       SUM(v.Mnozstvi) AS Celkove_Vydano
-FROM Lek l
-         JOIN Vydej v ON l.ID_leku = v.ID_leku
-GROUP BY l.Nazev
-HAVING SUM(v.Mnozstvi) > 2;
-
-
-SELECT *
-FROM TABLE (dbms_xplan.display);
-
--- Create index on Lek table
-CREATE UNIQUE INDEX idx_lek_id_leku ON Lek (Nazev);
-CREATE UNIQUE INDEX idx_vydej_mnozstvi ON Vydej (Mnozstvi);
-
--- FAST
-EXPLAIN PLAN FOR
-SELECT l.Nazev         AS Nazev_Leku,
-       SUM(v.Mnozstvi) AS Celkove_Vydano
-FROM Lek l
-         JOIN Vydej v ON l.ID_leku = v.ID_leku
-GROUP BY l.Nazev
-HAVING SUM(v.Mnozstvi) > 2;
-
-
-SELECT *
-FROM TABLE (dbms_xplan.display);
-
--- Drop index on Lek table
-DROP INDEX idx_lek_id_leku;
-DROP INDEX idx_vydej_mnozstvi;
-
 WITH CelkovoDorucene AS (SELECT ID_leku,
                                 SUM(Mnozstvi) AS DoruceneMnozstvi
                          FROM Vydej
@@ -447,6 +415,8 @@ FROM Lek l
          JOIN
      CelkovoDorucene cd ON l.ID_leku = cd.ID_leku;
 
+
+-- Základný dotaz
 EXPLAIN PLAN FOR
 SELECT o.Jmeno_zakaznika,
        o.Prijmeni_zakaznika,
@@ -459,8 +429,11 @@ GROUP BY o.Jmeno_zakaznika, o.Prijmeni_zakaznika;
 SELECT *
 FROM TABLE (DBMS_XPLAN.DISPLAY);
 
+
+-- Optimalizace dotazu --
 CREATE INDEX Jmeno_Prijmeni_Index ON Objednavka (Jmeno_zakaznika, Prijmeni_zakaznika);
 
+-- Optimalizovany dotaz --
 EXPLAIN PLAN FOR
 SELECT o.Jmeno_zakaznika,
        o.Prijmeni_zakaznika,
@@ -474,6 +447,9 @@ SELECT *
 FROM TABLE (DBMS_XPLAN.DISPLAY);
 
 DROP INDEX Jmeno_Prijmeni_Index;
+
+
+
 
 
 /*
