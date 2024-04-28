@@ -70,12 +70,12 @@ CREATE TABLE Uskladnen
 
 CREATE TABLE Hradi
 (
-    PRIMARY KEY (Ciclo_pojistovny, ID_leku),
+    PRIMARY KEY (Cislo_pojistovny, ID_leku),
     Cislo_pojistovny NUMBER NOT NULL,
     ID_leku          NUMBER NOT NULL,
     Castka           NUMBER NOT NULL,
     CHECK ( Castka >= 0),
-    CONSTRAINT Hradi_Pojistovna FOREIGN KEY (Ciclo_pojistovny) REFERENCES Pojistovna (Cislo_pojistovny),
+    CONSTRAINT Hradi_Pojistovna FOREIGN KEY (Cislo_pojistovny) REFERENCES Pojistovna (Cislo_pojistovny),
     CONSTRAINT Hradi_Lek FOREIGN KEY (ID_leku) REFERENCES Lek (ID_leku)
 
 );
@@ -95,10 +95,10 @@ CREATE TABLE Objednan
     -- Trigger 1, ktery zajisti, ze neni vydano vetsi mnozstvi leku, nez je ho na sklade --
     CREATE OR REPLACE TRIGGER KontrolaMnozstviNaSklade
     BEFORE INSERT ON Vydej
-    FOR EACH ROW 
-    DECLARE 
+    FOR EACH ROW
+    DECLARE
         mnozstvi_na_sklade NUMBER;
-    BEGIN   
+    BEGIN
         SELECT Mnozstvi INTO mnozstvi_na_sklade FROM Uskladnen WHERE Cislo_pobocky = :NEW.Cislo_pobocky AND ID_leku = :NEW.ID_leku;
         IF :NEW.Mnozstvi > mnozstvi_na_sklade THEN
             raise_application_error(-20001, 'Daného léku není dostatečné množství na skladě!');
@@ -143,7 +143,7 @@ CREATE TABLE Objednan
             SELECT v.Mnozstvi, l.Cena   -- cursor_prodeje ziskava mnozstvi kazdeho leku a jeho cenu --
             FROM Vydej v
             JOIN Lek l ON v.ID_leku = l.ID_leku;
-        v_mnozstvi Lek.Mnozstvi%TYPE;
+        v_mnozstvi Vydej.Mnozstvi%TYPE;
         v_cena Lek.Cena%TYPE;
     BEGIN
         p_Trzba := 0; -- Inicializace vystupniho parametru --
@@ -177,7 +177,7 @@ CREATE TABLE Objednan
         IF p_nove_mnozstvi > 0 THEN -- nesmi byt 0, protoze se predpoklada, ze tato procedura se pouziva pri prijeti zasilky od dodavatele --
             UPDATE Uskladnen
             SET Mnozstvi = Mnozstvi + p_nove_mnozstvi -- aktualizuje mnozstvi, Mnozstvi += p_nove_mnozstvi --
-            WHERE ID_leku = p_ID_leku AND Cislo_pobocky = p_cislo_pobocky; 
+            WHERE ID_leku = p_ID_leku AND Cislo_pobocky = p_cislo_pobocky;
         ELSE
             RAISE_APPLICATION_ERROR(-20005, 'Nové množství nesmí být záporné nebo 0!'); -- Pokud je nove mnozstvi <= 0 --
         END IF;
@@ -228,9 +228,9 @@ VALUES (15, 2, 2);
 
 
 -- Insert data into Hradi table
-INSERT INTO Hradi (Ciclo_pojistovny, ID_leku, Castka)
+INSERT INTO Hradi (Cislo_pojistovny, ID_leku, Castka)
 VALUES (123, 1, 1500);
-INSERT INTO Hradi (Ciclo_pojistovny, ID_leku, Castka)
+INSERT INTO Hradi (Cislo_pojistovny, ID_leku, Castka)
 VALUES (456, 2, 2000);
 
 -- Insert data into Objednan table
@@ -241,7 +241,7 @@ VALUES (2, 2, 25);
 
 
 -- Pouziti procedury 1 --
-DECLARE 
+DECLARE
     vysledek_procedury_1 NUMBER; -- deklarace promenne --
 BEGIN
     UtrzenaTrzba(vysledek_procedury_1); -- zavola proceduru a vrati vysledek skrze parametr --
@@ -251,7 +251,7 @@ END;
 
 
 -- Pouziti procedury 2 --
-BEGIN 
+BEGIN
     AktualizaceSkladu(p_cislo_pobocky => 1, p_ID_leku => 1, p_nove_mnozstvi 100); -- zavola proceduru pro aktualizaci mnozstvi na sklade --
     -- parametry jsou specificke cisla, tedy pro lek na pobocce v tabulce Uskladnen s Cislo_pobocky = 1 a pro ID_leku = 1, zvysi mnozstvi na sklade o 100 --
 END;
@@ -303,26 +303,26 @@ FROM Lek L
 
 -- Pristupova prava pro clena tymu
     -- Pro clena tymu xmacha86 --
-    GRANT ALL ON Pobocka TO xmacha86
-    GRANT ALL ON Lek TO xmacha86
-    GRANT ALL ON Objednavka TO xmacha86
-    GRANT ALL ON Pojistovna TO xmacha86
-    GRANT ALL ON Vydej TO xmacha86
-    GRANT ALL ON VydejPredpis TO xmacha86
-    GRANT ALL ON Uskladnen TO xmacha86
-    GRANT ALL ON Hradi TO xmacha86
-    GRANT ALL ON Objednan TO xmacha86
+    GRANT ALL ON Pobocka TO xmacha86;
+    GRANT ALL ON Lek TO xmacha86;
+    GRANT ALL ON Objednavka TO xmacha86;
+    GRANT ALL ON Pojistovna TO xmacha86;
+    GRANT ALL ON Vydej TO xmacha86;
+    GRANT ALL ON VydejPredpis TO xmacha86;
+    GRANT ALL ON Uskladnen TO xmacha86;
+    GRANT ALL ON Hradi TO xmacha86;
+    GRANT ALL ON Objednan TO xmacha86;
 
     -- Pro clena tymu xkanad00 --
-    GRANT ALL ON Pobocka TO xkanad00
-    GRANT ALL ON Lek TO xkanad00
-    GRANT ALL ON Objednavka TO xkanad00
-    GRANT ALL ON Pojistovna TO xkanad00
-    GRANT ALL ON Vydej TO xkanad00
-    GRANT ALL ON VydejPredpis TO xkanad00
-    GRANT ALL ON Uskladnen TO xkanad00
-    GRANT ALL ON Hradi TO xkanad00
-    GRANT ALL ON Objednan TO xkanad00
+    GRANT ALL ON Pobocka TO xkanad00;
+    GRANT ALL ON Lek TO xkanad00;
+    GRANT ALL ON Objednavka TO xkanad00;
+    GRANT ALL ON Pojistovna TO xkanad00;
+    GRANT ALL ON Vydej TO xkanad00;
+    GRANT ALL ON VydejPredpis TO xkanad00;
+    GRANT ALL ON Uskladnen TO xkanad00;
+    GRANT ALL ON Hradi TO xkanad00;
+    GRANT ALL ON Objednan TO xkanad00;
 
 
 -- Tvorba pohledu --
@@ -350,26 +350,26 @@ FROM Lek L
     JOIN
         Vydej v ON l.ID_leku = v.ID_leku
     GROUP BY
-        l.Nazev
-    WITH DATA;
+        l.Nazev;
+    WITH DATA
 
 
 -- Demonstrace pohledu pomoci SELECT dotazu --
     -- Jednoduchy VIEW --
         -- Zobrazi vsechna data o objednavkach (pobocky, leky, mnozstvi)
         SELECT *
-        FROM Objednavky;
+        FROM Objednavky)
         -- ORDER BY DESC/ASC (moznost zobrazeni stejnych dat serazenych dle poctu prodanych leku SESTUNE/VZESTUPNE) --
 
         -- Dotaz pro zjisteni celkoveho mnozstvi objednaneho leku --
         SELECT Nazev_Leku, SUM(Mnozstvi) AS ObjednaneMnozstvi
         FROM Objednavky
-        GROUP BY Nazev_Lekuů
+        GROUP BY Nazev_Leku;
 
         -- Informace o prodanych lecich na dane pobocce --
         SELECT Nazev_Leku, SUM(Mnozstvi) AS ObjednaneMnozstvi
         FROM Objednavky
-        WHERE Nazev_Pobocky = 'Lékárna Na Růži'
+        WHERE Nazev_Pobocky = 'Lékárna Na Růži';
 
     -- Materialized view --
         -- Zobrazi vsechny informace o prodanych lecich --
@@ -384,7 +384,7 @@ FROM Lek L
 
         -- Informace o celkove trzbe (soucet jednotlivych trzeb leku) --
         SELECT SUM(Trzba) AS Celkova_Trzba
-        FROM ProdejniZprava; 
+        FROM ProdejniZprava;
 
 
 /*
