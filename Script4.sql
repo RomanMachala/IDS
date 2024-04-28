@@ -241,9 +241,9 @@ VALUES (15, 2, 2);
 
 -- Insert data into Hradi table
 INSERT INTO Hradi (Cislo_pojistovny, ID_leku, Castka)
-VALUES (123, 1, 1500);
+VALUES (123, 1, 1);
 INSERT INTO Hradi (Cislo_pojistovny, ID_leku, Castka)
-VALUES (456, 2, 2000);
+VALUES (456, 2, 1);
 
 -- Insert data into Objednan table
 INSERT INTO Objednan (ID_objednavky, ID_leku, Mnozstvi)
@@ -404,25 +404,76 @@ EXPLAIN PLAN FOR
 SELECT l.Nazev         AS Nazev_Leku,
        SUM(v.Mnozstvi) AS Celkove_Vydano
 FROM Lek l
-         JOIN
-     Vydej v ON l.ID_leku = v.ID_leku
-GROUP BY l.Nazev;
+         JOIN Vydej v ON l.ID_leku = v.ID_leku
+GROUP BY l.Nazev
+HAVING SUM(v.Mnozstvi) > 2;
 
+
+SELECT *
+FROM TABLE (dbms_xplan.display);
 
 -- Create index on Lek table
-CREATE INDEX idx_lek_id_leku ON Lek (ID_leku);
+CREATE UNIQUE INDEX idx_lek_id_leku ON Lek (Nazev);
+CREATE UNIQUE INDEX idx_vydej_mnozstvi ON Vydej (Mnozstvi);
 
 -- FAST
 EXPLAIN PLAN FOR
 SELECT l.Nazev         AS Nazev_Leku,
        SUM(v.Mnozstvi) AS Celkove_Vydano
 FROM Lek l
-         JOIN
-     Vydej v ON l.ID_leku = v.ID_leku
-GROUP BY l.Nazev;
+         JOIN Vydej v ON l.ID_leku = v.ID_leku
+GROUP BY l.Nazev
+HAVING SUM(v.Mnozstvi) > 2;
+
+
+SELECT *
+FROM TABLE (dbms_xplan.display);
 
 -- Drop index on Lek table
 DROP INDEX idx_lek_id_leku;
+DROP INDEX idx_vydej_mnozstvi;
+
+WITH CelkovoDorucene AS (SELECT ID_leku,
+                                SUM(Mnozstvi) AS DoruceneMnozstvi
+                         FROM Vydej
+                         GROUP BY ID_leku)
+SELECT l.Nazev             AS Lek,
+       cd.DoruceneMnozstvi AS Vydané_množství,
+       CASE
+           WHEN cd.DoruceneMnozstvi >= 100 THEN 'Nad 100'
+           ELSE 'Pod 100'
+           END             AS Status_Prodeje
+FROM Lek l
+         JOIN
+     CelkovoDorucene cd ON l.ID_leku = cd.ID_leku;
+
+EXPLAIN PLAN FOR
+SELECT o.Jmeno_zakaznika,
+       o.Prijmeni_zakaznika,
+       COUNT(*) AS Pocet_objednavek,
+       SUM(l.Cena) AS Celkova_cena
+FROM Objednavka o
+         JOIN Lek l ON o.ID_leku = l.ID_leku
+GROUP BY o.Jmeno_zakaznika, o.Prijmeni_zakaznika;
+
+SELECT *
+FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+CREATE INDEX Jmeno_Prijmeni_Index ON Objednavka (Jmeno_zakaznika, Prijmeni_zakaznika);
+
+EXPLAIN PLAN FOR
+SELECT o.Jmeno_zakaznika,
+       o.Prijmeni_zakaznika,
+       COUNT(*) AS Pocet_objednavek,
+       SUM(l.Cena) AS Celkova_cena
+FROM Objednavka o
+         JOIN Lek l ON o.ID_leku = l.ID_leku
+GROUP BY o.Jmeno_zakaznika, o.Prijmeni_zakaznika;
+
+SELECT *
+FROM TABLE (DBMS_XPLAN.DISPLAY);
+
+DROP INDEX Jmeno_Prijmeni_Index;
 
 
 /*
