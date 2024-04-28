@@ -325,7 +325,7 @@ FROM Lek L
 
 -- Tvorba pohledu --
     -- Jednoduchy pohled, ktery umoznuje ziskat prehled o jendotlivych objednavkach provedenych na danych pobockach --
-    CREATE VIEW Objednavky AS
+CREATE VIEW Objednavky AS
     SELECT
         p.Nazev AS Nazev_Pobocky,
         l.Nazev AS Nazev_Leku,
@@ -333,7 +333,9 @@ FROM Lek L
     FROM
         Pobocka p
     JOIN
-        Objednavka o ON p.Cislo_pobocky = o.Cislo_pobocky
+        Objednavka ob ON p.Cislo_pobocky = ob.Cislo_pobocky
+    JOIN
+        Objednan o ON ob.ID_objednavky = o.ID_objednavky
     JOIN
         Lek l ON o.ID_leku = l.ID_leku;
 
@@ -359,7 +361,7 @@ FROM Lek L
     -- Jednoduchy VIEW --
         -- Zobrazi vsechna data o objednavkach (pobocky, leky, mnozstvi)
         SELECT *
-        FROM Objednavky
+        FROM Objednavky;
         -- ORDER BY DESC/ASC (moznost zobrazeni stejnych dat serazenych dle poctu prodanych leku SESTUNE/VZESTUPNE) --
 
         -- Dotaz pro zjisteni celkoveho mnozstvi objednaneho leku --
@@ -370,7 +372,8 @@ FROM Lek L
         -- Informace o prodanych lecich na dane pobocce --
         SELECT Nazev_Leku, SUM(Mnozstvi) AS ObjednaneMnozstvi
         FROM Objednavky
-        WHERE Nazev_Pobocky = 'Lékárna Na Růži';
+        WHERE Nazev_Pobocky = 'Lékárna Na Růži'
+        group by Nazev_Leku;
 
     -- Materialized view --
         -- Zobrazi vsechny informace o prodanych lecich --
