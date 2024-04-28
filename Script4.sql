@@ -126,14 +126,12 @@ CREATE TABLE Objednan
     BEGIN
         SELECT Cena INTO cena_leku FROM Lek WHERE ID_leku = :NEW.ID_leku; -- Zvol cenu leku z jiz existujiciho zaznamu v tabulce Lek --
         IF :NEW.Castka > cena_leku THEN
-            RAISE_APPLICATION_ERROR(-20002, "Pojišťovna nemůže hradit částku vyšší, než je částka léku!");
+            RAISE_APPLICATION_ERROR(-20002, 'Pojišťovna nemůže hradit částku vyšší, než je částka léku!');
         END IF;
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20003, "Daný lék, neexistuje v záznamech o lécích!");
-
+            RAISE_APPLICATION_ERROR(-20003, 'Daný lék, neexistuje v záznamech o lécích!');
     END;
-    ;
 
 -- Definice procedur --
     -- Procedura 1, ktera vraci informace o celkove trzbe skrze vystupni parametr --
@@ -252,7 +250,7 @@ END;
 
 -- Pouziti procedury 2 --
 BEGIN
-    AktualizaceSkladu(p_cislo_pobocky => 1, p_ID_leku => 1, p_nove_mnozstvi 100); -- zavola proceduru pro aktualizaci mnozstvi na sklade --
+    AktualizaceSkladu(p_cislo_pobocky => 1, p_ID_leku => 1, p_nove_mnozstvi => 100); -- zavola proceduru pro aktualizaci mnozstvi na sklade --
     -- parametry jsou specificke cisla, tedy pro lek na pobocce v tabulce Uskladnen s Cislo_pobocky = 1 a pro ID_leku = 1, zvysi mnozstvi na sklade o 100 --
 END;
 ;
@@ -358,7 +356,7 @@ FROM Lek L
     -- Jednoduchy VIEW --
         -- Zobrazi vsechna data o objednavkach (pobocky, leky, mnozstvi)
         SELECT *
-        FROM Objednavky)
+        FROM Objednavky
         -- ORDER BY DESC/ASC (moznost zobrazeni stejnych dat serazenych dle poctu prodanych leku SESTUNE/VZESTUPNE) --
 
         -- Dotaz pro zjisteni celkoveho mnozstvi objednaneho leku --
