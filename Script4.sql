@@ -365,12 +365,12 @@ CREATE VIEW Objednavky AS
         -- ORDER BY DESC/ASC (moznost zobrazeni stejnych dat serazenych dle poctu prodanych leku SESTUNE/VZESTUPNE) --
 
         -- Dotaz pro zjisteni celkoveho mnozstvi objednaneho leku --
-        SELECT Nazev_Leku, SUM(Mnozstvi) AS ObjednaneMnozstvi
+        SELECT Nazev_Leku, SUM(ObjednaneMnozstvi) AS ObjednaneMnozstvi
         FROM Objednavky
         GROUP BY Nazev_Leku;
 
         -- Informace o prodanych lecich na dane pobocce --
-        SELECT Nazev_Leku, SUM(Mnozstvi) AS ObjednaneMnozstvi
+        SELECT Nazev_Leku, SUM(ObjednaneMnozstvi) AS ObjednaneMnozstvi
         FROM Objednavky
         WHERE Nazev_Pobocky = 'Lékárna Na Růži'
         group by Nazev_Leku;
