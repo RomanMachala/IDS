@@ -135,6 +135,59 @@ CREATE TABLE Objednan
     END;
     ;
 
+-- Definice procedur --
+    -- Procedura 1, ktera vraci informace o celkove trzbe skrze vystupni parametr --
+    CREATE OR REPLACE PROCEDURE UtrzenaTrzba(p_Trzba OUT NUMBER) -- Vytvoreni procedury s parametrem p_Trzba, ktery je vystupni, vracen volajicimu --
+    AS
+        CURSOR cursor_prodeje IS    -- Deklarace kurzoru a promennych --
+            SELECT v.Mnozstvi, l.Cena   -- cursor_prodeje ziskava mnozstvi kazdeho leku a jeho cenu --
+            FROM Vydej v
+            JOIN Lek l ON v.ID_leku = l.ID_leku;
+        v_mnozstvi Lek.Mnozstvi%TYPE;
+        v_cena Lek.Cena%TYPE;
+    BEGIN
+        p_Trzba := 0; -- Inicializace vystupniho parametru --
+        OPEN cursor_prodeje;
+        LOOP -- Dokud jsou data dostupna z kurzoru, bude se vyklus opakovat --
+            FETCH cursor_prodeje INTO v_mnozstvi, v_cena; -- Nacteni aktualnich dat z kurzoru do promennych v_mnozstvi, v_cena --
+            EXIT WHEN cursor_prodeje%NOTFOUND; -- ukonceni cyklu, pokud kurzor nema zadne dalsi radky --
+            p_Trzba := p_Trzba + (v_mnozstvi * v_cena); -- aktualizace celkove trzby --
+        END LOOP;
+        CLOSE cursor_prodeje; -- uzavreni kurzoru --
+
+        EXCEPTION -- zachyceni vyjimek --
+            WHEN NO_DATA_FOUND THEN -- pokud dotaz nevrati zadna data --
+                p_Trzba := 0;
+                DBMS_OUTPUT.PUT_LINE('Žádná data nebyla nalezena, celková tržba je 0,-');
+            WHEN OTHERS THEN -- ostatni vyjimky --
+                DBMS_OUTPUT.PUT_LINE('Nastala neočekávaná chyba: ' || SQLERRM);
+                IF cursor_prodeje%ISOPEN THEN -- pokud je kurzor otevren, uzavreme jej --
+                    CLOSE cursor_prodeje;
+                END IF;
+    END;
+    ;
+
+    -- Procedura 2, ktera aktualizuje mnozstvi na sklade pro vybrany lek --
+    CREATE OR REPLACE PROCEDURE AktualizaceSkladu(p_cislo_pobocky NUMBER, p_ID_leku NUMBER, p_nove_mnozstvi NUMBER)
+    AS
+        v_stare_mnozstvi Uskladnen.Mnozstvi%TYPE;
+    BEGIN
+        SELECT Mnozstvi INTO v_stare_mnozstvi FROM Uskladnen WHERE ID_leku = p_ID_leku AND Cislo_pobocky = p_cislo_pobocky FOR UPDATE;
+        -- vrati stare mnozstvi do promenne v_stare_mnozstvi --
+        IF p_nove_mnozstvi > 0 THEN -- nesmi byt 0, protoze se predpoklada, ze tato procedura se pouziva pri prijeti zasilky od dodavatele --
+            UPDATE Uskladnen
+            SET Mnozstvi = Mnozstvi + p_nove_mnozstvi -- aktualizuje mnozstvi, Mnozstvi += p_nove_mnozstvi --
+            WHERE ID_leku = p_ID_leku AND Cislo_pobocky = p_cislo_pobocky; 
+        ELSE
+            RAISE_APPLICATION_ERROR(-20005, 'Nové množství nesmí být záporné nebo 0!'); -- Pokud je nove mnozstvi <= 0 --
+        END IF;
+    EXCEPTION -- Osetreni chyb --
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20003, 'Daný lék, neexistuje v záznamech o lécích!');
+        WHEN OTHERS THEN
+            RAISE_APPLICATION_ERROR(-20006, 'Nastala neočekávaná chyba ' || SQLERRM);
+    END;
+    ;
 
 
 -- Insert data into Pobocka table
@@ -187,7 +240,23 @@ INSERT INTO Objednan (ID_objednavky, ID_leku, Mnozstvi)
 VALUES (2, 2, 25);
 
 
--- Zadanie 3 --
+-- Pouziti procedury 1 --
+DECLARE 
+    vysledek_procedury_1 NUMBER; -- deklarace promenne --
+BEGIN
+    UtrzenaTrzba(vysledek_procedury_1); -- zavola proceduru a vrati vysledek skrze parametr --
+    DBMS_OUTPUT.PUT_LINE('Celková tržba je: ' || vysledek_procedury_1); -- vypise celkovou trzbu --
+END;
+;
+
+
+-- Pouziti procedury 2 --
+BEGIN 
+    AktualizaceSkladu(p_cislo_pobocky => 1, p_ID_leku => 1, p_nove_mnozstvi 100); -- zavola proceduru pro aktualizaci mnozstvi na sklade --
+    -- parametry jsou specificke cisla, tedy pro lek na pobocce v tabulce Uskladnen s Cislo_pobocky = 1 a pro ID_leku = 1, zvysi mnozstvi na sklade o 100 --
+END;
+;
+
 
 -- 1. Dotaz využívající spojení dvou tabulek - získání informací o objednávkách a názvu léku
 SELECT O.Jmeno_zakaznika, O.Prijmeni_zakaznika, L.Nazev AS Nazev_leku
