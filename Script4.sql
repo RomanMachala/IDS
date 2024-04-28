@@ -92,100 +92,114 @@ CREATE TABLE Objednan
 );
 
 -- Definice triggeru --
-    -- Trigger 1, ktery zajisti, ze neni vydano vetsi mnozstvi leku, nez je ho na sklade --
-    CREATE OR REPLACE TRIGGER KontrolaMnozstviNaSklade
-    BEFORE INSERT ON Vydej
+-- Trigger 1, ktery zajisti, ze neni vydano vetsi mnozstvi leku, nez je ho na sklade --
+CREATE OR REPLACE TRIGGER KontrolaMnozstviNaSklade
+    BEFORE INSERT
+    ON Vydej
     FOR EACH ROW
-    DECLARE
-        mnozstvi_na_sklade NUMBER;
-    BEGIN
-        SELECT Mnozstvi INTO mnozstvi_na_sklade FROM Uskladnen WHERE Cislo_pobocky = :NEW.Cislo_pobocky AND ID_leku = :NEW.ID_leku;
-        IF :NEW.Mnozstvi > mnozstvi_na_sklade THEN
-            raise_application_error(-20001, 'Daného léku není dostatečné množství na skladě!');
-        END IF;
-    END;
-    ;
+DECLARE
+    mnozstvi_na_sklade NUMBER;
+BEGIN
+    SELECT Mnozstvi
+    INTO mnozstvi_na_sklade
+    FROM Uskladnen
+    WHERE Cislo_pobocky = :NEW.Cislo_pobocky
+      AND ID_leku = :NEW.ID_leku;
+    IF :NEW.Mnozstvi > mnozstvi_na_sklade THEN
+        raise_application_error(-20001, 'Daného léku není dostatečné množství na skladě!');
+    END IF;
+END;
+;
 
-    -- Trigger 2, ktery aktualizuje mnozstvi na sklade po vydani daneho leku --
-    CREATE OR REPLACE TRIGGER AktualizaceMnozstvi
-    AFTER INSERT ON Vydej -- Po INSERTU zaznamu do tabulky Vydej --
+-- Trigger 2, ktery aktualizuje mnozstvi na sklade po vydani daneho leku --
+CREATE OR REPLACE TRIGGER AktualizaceMnozstvi
+    AFTER INSERT
+    ON Vydej -- Po INSERTU zaznamu do tabulky Vydej --
     FOR EACH ROW
-    BEGIN
-        UPDATE Uskladnen    -- Aktualizuj zaznam v tabulce Uskladnen --
-        SET Mnozstvi = Mnozstvi - :NEW.Mnozstvi -- Sniz mnozstvi o vydane a nastav jej za aktualni --
-        WHERE Cislo_pobocky = :NEW.Cislo_pobocky AND ID_LEKU = :NEW.ID_Leku;
-    END;
-    ;
+BEGIN
+    UPDATE Uskladnen -- Aktualizuj zaznam v tabulce Uskladnen --
+    SET Mnozstvi = Mnozstvi - :NEW.Mnozstvi -- Sniz mnozstvi o vydane a nastav jej za aktualni --
+    WHERE Cislo_pobocky = :NEW.Cislo_pobocky
+      AND ID_LEKU = :NEW.ID_Leku;
+END;
+;
 
-    -- Trigger 3, ktery kontroluje, zda pojistovna hradi castku nepresahujici cenu leku --
-    CREATE OR REPLACE TRIGGER KontrolaCenyHrazeni
-    AFTER INSERT ON Hradi -- Po vlozeni zaznamu do tabulky Hradi --
+-- Trigger 3, ktery kontroluje, zda pojistovna hradi castku nepresahujici cenu leku --
+CREATE OR REPLACE TRIGGER KontrolaCenyHrazeni
+    AFTER INSERT
+    ON Hradi -- Po vlozeni zaznamu do tabulky Hradi --
     FOR EACH ROW
-    DECLARE
-        cena_leku NUMBER;
-    BEGIN
-        SELECT Cena INTO cena_leku FROM Lek WHERE ID_leku = :NEW.ID_leku; -- Zvol cenu leku z jiz existujiciho zaznamu v tabulce Lek --
-        IF :NEW.Castka > cena_leku THEN
-            RAISE_APPLICATION_ERROR(-20002, 'Pojišťovna nemůže hradit částku vyšší, než je částka léku!');
-        END IF;
-    EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20003, 'Daný lék, neexistuje v záznamech o lécích!');
-    END;
+DECLARE
+    cena_leku NUMBER;
+BEGIN
+    SELECT Cena INTO cena_leku FROM Lek WHERE ID_leku = :NEW.ID_leku; -- Zvol cenu leku z jiz existujiciho zaznamu v tabulce Lek --
+    IF :NEW.Castka > cena_leku THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Pojišťovna nemůže hradit částku vyšší, než je částka léku!');
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20003, 'Daný lék, neexistuje v záznamech o lécích!');
+END;
 
 -- Definice procedur --
-    -- Procedura 1, ktera vraci informace o celkove trzbe skrze vystupni parametr --
-    CREATE OR REPLACE PROCEDURE UtrzenaTrzba(p_Trzba OUT NUMBER) -- Vytvoreni procedury s parametrem p_Trzba, ktery je vystupni, vracen volajicimu --
-    AS
-        CURSOR cursor_prodeje IS    -- Deklarace kurzoru a promennych --
-            SELECT v.Mnozstvi, l.Cena   -- cursor_prodeje ziskava mnozstvi kazdeho leku a jeho cenu --
-            FROM Vydej v
-            JOIN Lek l ON v.ID_leku = l.ID_leku;
-        v_mnozstvi Vydej.Mnozstvi%TYPE;
-        v_cena Lek.Cena%TYPE;
-    BEGIN
-        p_Trzba := 0; -- Inicializace vystupniho parametru --
-        OPEN cursor_prodeje;
-        LOOP -- Dokud jsou data dostupna z kurzoru, bude se vyklus opakovat --
-            FETCH cursor_prodeje INTO v_mnozstvi, v_cena; -- Nacteni aktualnich dat z kurzoru do promennych v_mnozstvi, v_cena --
-            EXIT WHEN cursor_prodeje%NOTFOUND; -- ukonceni cyklu, pokud kurzor nema zadne dalsi radky --
-            p_Trzba := p_Trzba + (v_mnozstvi * v_cena); -- aktualizace celkove trzby --
-        END LOOP;
-        CLOSE cursor_prodeje; -- uzavreni kurzoru --
+-- Procedura 1, ktera vraci informace o celkove trzbe skrze vystupni parametr --
+CREATE OR REPLACE PROCEDURE UtrzenaTrzba(p_Trzba OUT NUMBER) -- Vytvoreni procedury s parametrem p_Trzba, ktery je vystupni, vracen volajicimu --
+AS
+    CURSOR cursor_prodeje IS -- Deklarace kurzoru a promennych --
+        SELECT v.Mnozstvi, l.Cena -- cursor_prodeje ziskava mnozstvi kazdeho leku a jeho cenu --
+        FROM Vydej v
+                 JOIN Lek l ON v.ID_leku = l.ID_leku;
+    v_mnozstvi Vydej.Mnozstvi%TYPE;
+    v_cena     Lek.Cena%TYPE;
+BEGIN
+    p_Trzba := 0; -- Inicializace vystupniho parametru --
+    OPEN cursor_prodeje;
+    LOOP
+        -- Dokud jsou data dostupna z kurzoru, bude se vyklus opakovat --
+        FETCH cursor_prodeje INTO v_mnozstvi, v_cena; -- Nacteni aktualnich dat z kurzoru do promennych v_mnozstvi, v_cena --
+        EXIT WHEN cursor_prodeje%NOTFOUND; -- ukonceni cyklu, pokud kurzor nema zadne dalsi radky --
+        p_Trzba := p_Trzba + (v_mnozstvi * v_cena); -- aktualizace celkove trzby --
+    END LOOP;
+    CLOSE cursor_prodeje; -- uzavreni kurzoru --
 
-        EXCEPTION -- zachyceni vyjimek --
-            WHEN NO_DATA_FOUND THEN -- pokud dotaz nevrati zadna data --
-                p_Trzba := 0;
-                DBMS_OUTPUT.PUT_LINE('Žádná data nebyla nalezena, celková tržba je 0,-');
-            WHEN OTHERS THEN -- ostatni vyjimky --
-                DBMS_OUTPUT.PUT_LINE('Nastala neočekávaná chyba: ' || SQLERRM);
-                IF cursor_prodeje%ISOPEN THEN -- pokud je kurzor otevren, uzavreme jej --
-                    CLOSE cursor_prodeje;
-                END IF;
-    END;
-    ;
-
-    -- Procedura 2, ktera aktualizuje mnozstvi na sklade pro vybrany lek --
-    CREATE OR REPLACE PROCEDURE AktualizaceSkladu(p_cislo_pobocky NUMBER, p_ID_leku NUMBER, p_nove_mnozstvi NUMBER)
-    AS
-        v_stare_mnozstvi Uskladnen.Mnozstvi%TYPE;
-    BEGIN
-        SELECT Mnozstvi INTO v_stare_mnozstvi FROM Uskladnen WHERE ID_leku = p_ID_leku AND Cislo_pobocky = p_cislo_pobocky FOR UPDATE;
-        -- vrati stare mnozstvi do promenne v_stare_mnozstvi --
-        IF p_nove_mnozstvi > 0 THEN -- nesmi byt 0, protoze se predpoklada, ze tato procedura se pouziva pri prijeti zasilky od dodavatele --
-            UPDATE Uskladnen
-            SET Mnozstvi = Mnozstvi + p_nove_mnozstvi -- aktualizuje mnozstvi, Mnozstvi += p_nove_mnozstvi --
-            WHERE ID_leku = p_ID_leku AND Cislo_pobocky = p_cislo_pobocky;
-        ELSE
-            RAISE_APPLICATION_ERROR(-20005, 'Nové množství nesmí být záporné nebo 0!'); -- Pokud je nove mnozstvi <= 0 --
+EXCEPTION -- zachyceni vyjimek --
+    WHEN NO_DATA_FOUND THEN -- pokud dotaz nevrati zadna data --
+        p_Trzba := 0;
+        DBMS_OUTPUT.PUT_LINE('Žádná data nebyla nalezena, celková tržba je 0,-');
+    WHEN OTHERS THEN -- ostatni vyjimky --
+        DBMS_OUTPUT.PUT_LINE('Nastala neočekávaná chyba: ' || SQLERRM);
+        IF cursor_prodeje%ISOPEN THEN -- pokud je kurzor otevren, uzavreme jej --
+            CLOSE cursor_prodeje;
         END IF;
-    EXCEPTION -- Osetreni chyb --
-        WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20003, 'Daný lék, neexistuje v záznamech o lécích!');
-        WHEN OTHERS THEN
-            RAISE_APPLICATION_ERROR(-20006, 'Nastala neočekávaná chyba ' || SQLERRM);
-    END;
-    ;
+END;
+;
+
+-- Procedura 2, ktera aktualizuje mnozstvi na sklade pro vybrany lek --
+CREATE OR REPLACE PROCEDURE AktualizaceSkladu(p_cislo_pobocky NUMBER, p_ID_leku NUMBER, p_nove_mnozstvi NUMBER)
+AS
+    v_stare_mnozstvi Uskladnen.Mnozstvi%TYPE;
+BEGIN
+    SELECT Mnozstvi
+    INTO v_stare_mnozstvi
+    FROM Uskladnen
+    WHERE ID_leku = p_ID_leku
+      AND Cislo_pobocky = p_cislo_pobocky FOR UPDATE;
+    -- vrati stare mnozstvi do promenne v_stare_mnozstvi --
+    IF p_nove_mnozstvi > 0 THEN -- nesmi byt 0, protoze se predpoklada, ze tato procedura se pouziva pri prijeti zasilky od dodavatele --
+        UPDATE Uskladnen
+        SET Mnozstvi = Mnozstvi + p_nove_mnozstvi -- aktualizuje mnozstvi, Mnozstvi += p_nove_mnozstvi --
+        WHERE ID_leku = p_ID_leku
+          AND Cislo_pobocky = p_cislo_pobocky;
+    ELSE
+        RAISE_APPLICATION_ERROR(-20005, 'Nové množství nesmí být záporné nebo 0!'); -- Pokud je nove mnozstvi <= 0 --
+    END IF;
+EXCEPTION -- Osetreni chyb --
+    WHEN NO_DATA_FOUND THEN
+        RAISE_APPLICATION_ERROR(-20003, 'Daný lék, neexistuje v záznamech o lécích!');
+    WHEN OTHERS THEN
+        RAISE_APPLICATION_ERROR(-20006, 'Nastala neočekávaná chyba ' || SQLERRM);
+END;
+;
 
 
 -- Insert data into Pobocka table
@@ -250,7 +264,8 @@ END;
 
 -- Pouziti procedury 2 --
 BEGIN
-    AktualizaceSkladu(p_cislo_pobocky => 1, p_ID_leku => 1, p_nove_mnozstvi => 100); -- zavola proceduru pro aktualizaci mnozstvi na sklade --
+    AktualizaceSkladu(p_cislo_pobocky => 1, p_ID_leku => 1, p_nove_mnozstvi => 100);
+    -- zavola proceduru pro aktualizaci mnozstvi na sklade --
     -- parametry jsou specificke cisla, tedy pro lek na pobocce v tabulce Uskladnen s Cislo_pobocky = 1 a pro ID_leku = 1, zvysi mnozstvi na sklade o 100 --
 END;
 ;
@@ -300,95 +315,114 @@ FROM Lek L
 
 
 -- Pristupova prava pro clena tymu
-    -- Pro clena tymu xmacha86 --
-    GRANT ALL ON Pobocka TO xmacha86;
-    GRANT ALL ON Lek TO xmacha86;
-    GRANT ALL ON Objednavka TO xmacha86;
-    GRANT ALL ON Pojistovna TO xmacha86;
-    GRANT ALL ON Vydej TO xmacha86;
-    GRANT ALL ON VydejPredpis TO xmacha86;
-    GRANT ALL ON Uskladnen TO xmacha86;
-    GRANT ALL ON Hradi TO xmacha86;
-    GRANT ALL ON Objednan TO xmacha86;
+-- Pro clena tymu xmacha86 --
+GRANT ALL ON Pobocka TO xmacha86;
+GRANT ALL ON Lek TO xmacha86;
+GRANT ALL ON Objednavka TO xmacha86;
+GRANT ALL ON Pojistovna TO xmacha86;
+GRANT ALL ON Vydej TO xmacha86;
+GRANT ALL ON VydejPredpis TO xmacha86;
+GRANT ALL ON Uskladnen TO xmacha86;
+GRANT ALL ON Hradi TO xmacha86;
+GRANT ALL ON Objednan TO xmacha86;
 
-    -- Pro clena tymu xkanad00 --
-    GRANT ALL ON Pobocka TO xkanad00;
-    GRANT ALL ON Lek TO xkanad00;
-    GRANT ALL ON Objednavka TO xkanad00;
-    GRANT ALL ON Pojistovna TO xkanad00;
-    GRANT ALL ON Vydej TO xkanad00;
-    GRANT ALL ON VydejPredpis TO xkanad00;
-    GRANT ALL ON Uskladnen TO xkanad00;
-    GRANT ALL ON Hradi TO xkanad00;
-    GRANT ALL ON Objednan TO xkanad00;
+-- Pro clena tymu xkanad00 --
+GRANT ALL ON Pobocka TO xkanad00;
+GRANT ALL ON Lek TO xkanad00;
+GRANT ALL ON Objednavka TO xkanad00;
+GRANT ALL ON Pojistovna TO xkanad00;
+GRANT ALL ON Vydej TO xkanad00;
+GRANT ALL ON VydejPredpis TO xkanad00;
+GRANT ALL ON Uskladnen TO xkanad00;
+GRANT ALL ON Hradi TO xkanad00;
+GRANT ALL ON Objednan TO xkanad00;
 
 
 -- Tvorba pohledu --
-    -- Jednoduchy pohled, ktery umoznuje ziskat prehled o jendotlivych objednavkach provedenych na danych pobockach --
+-- Jednoduchy pohled, ktery umoznuje ziskat prehled o jendotlivych objednavkach provedenych na danych pobockach --
 CREATE VIEW Objednavky AS
-    SELECT
-        p.Nazev AS Nazev_Pobocky,
-        l.Nazev AS Nazev_Leku,
-        o.Mnozstvi
-    FROM
-        Pobocka p
-    JOIN
-        Objednavka ob ON p.Cislo_pobocky = ob.Cislo_pobocky
-    JOIN
-        Objednan o ON ob.ID_objednavky = o.ID_objednavky
-    JOIN
-        Lek l ON o.ID_leku = l.ID_leku;
+SELECT p.Nazev    AS Nazev_Pobocky,
+       l.Nazev    AS Nazev_Leku,
+       o.Mnozstvi AS ObjednaneMnozstvi
+FROM Pobocka p
+         JOIN
+     Objednavka ob ON p.Cislo_pobocky = ob.Cislo_pobocky
+         JOIN
+     Objednan o ON ob.ID_objednavky = o.ID_objednavky
+         JOIN
+     Lek l ON o.ID_leku = l.ID_leku;
 
-    -- Materializovany pohled, ktery uklada data reprezentujici vypisy o prodejich (vhodne napriklad pro mesicni vypisy)  --
-    CREATE MATERIALIZED VIEW ProdejniZprava
-        BUILD IMMEDIATE
-        REFRESH COMPLETE
-        ON DEMAND
-        AS
-        SELECT
-            l.Nazev AS Nazev_Leku,
-            SUM(v.Mnozstvi) AS Celkove_Prodano,
-            SUM(v.Mnozstvi * l.Cena) AS Trzba
-        FROM
-            Lek l
-        JOIN
-            Vydej v ON l.ID_leku = v.ID_leku
-        GROUP BY
-            l.Nazev;
+-- Materializovany pohled, ktery uklada data reprezentujici vypisy o prodejich (vhodne napriklad pro mesicni vypisy)  --
+CREATE MATERIALIZED VIEW ProdejniZprava
+            BUILD IMMEDIATE
+    REFRESH COMPLETE ON DEMAND
+AS
+SELECT l.Nazev                  AS Nazev_Leku,
+       SUM(v.Mnozstvi)          AS Celkove_Prodano,
+       SUM(v.Mnozstvi * l.Cena) AS Trzba
+FROM Lek l
+         JOIN
+     Vydej v ON l.ID_leku = v.ID_leku
+GROUP BY l.Nazev;
 
 
 -- Demonstrace pohledu pomoci SELECT dotazu --
-    -- Jednoduchy VIEW --
-        -- Zobrazi vsechna data o objednavkach (pobocky, leky, mnozstvi)
-        SELECT *
-        FROM Objednavky;
-        -- ORDER BY DESC/ASC (moznost zobrazeni stejnych dat serazenych dle poctu prodanych leku SESTUNE/VZESTUPNE) --
+-- Jednoduchy VIEW --
+-- Zobrazi vsechna data o objednavkach (pobocky, leky, mnozstvi)
+SELECT *
+FROM Objednavky;
+-- ORDER BY DESC/ASC (moznost zobrazeni stejnych dat serazenych dle poctu prodanych leku SESTUNE/VZESTUPNE) --
 
-        -- Dotaz pro zjisteni celkoveho mnozstvi objednaneho leku --
-        SELECT Nazev_Leku, SUM(ObjednaneMnozstvi) AS ObjednaneMnozstvi
-        FROM Objednavky
-        GROUP BY Nazev_Leku;
+-- Dotaz pro zjisteni celkoveho mnozstvi objednaneho leku --
+SELECT Nazev_Leku, SUM(ObjednaneMnozstvi) AS ObjednaneMnozstvi
+FROM Objednavky
+GROUP BY Nazev_Leku;
 
-        -- Informace o prodanych lecich na dane pobocce --
-        SELECT Nazev_Leku, SUM(ObjednaneMnozstvi) AS ObjednaneMnozstvi
-        FROM Objednavky
-        WHERE Nazev_Pobocky = 'Lékárna Na Růži'
-        group by Nazev_Leku;
+-- Informace o prodanych lecich na dane pobocce --
+SELECT Nazev_Leku, SUM(ObjednaneMnozstvi) AS ObjednaneMnozstvi
+FROM Objednavky
+WHERE Nazev_Pobocky = 'Lékárna Na Růži'
+group by Nazev_Leku;
 
-    -- Materialized view --
-        -- Zobrazi vsechny informace o prodanych lecich --
-        SELECT *
-        FROM ProdejniZprava;
-        -- ORDER BY Celkova_Trzba DESC/ASC (lze jeste seradit dle celkove trzby daneho leku SESTUPNE/VZESTUPNE) --
+-- Materialized view --
+-- Zobrazi vsechny informace o prodanych lecich --
+SELECT *
+FROM ProdejniZprava;
+-- ORDER BY Celkova_Trzba DESC/ASC (lze jeste seradit dle celkove trzby daneho leku SESTUPNE/VZESTUPNE) --
 
-        -- Informace o prodanych lecich, ktere byly prodany alespon 100 --
-        SELECT *
-        FROM ProdejniZprava
-        WHERE Celkove_Prodano > 100;
+-- Informace o prodanych lecich, ktere byly prodany alespon 100 --
+SELECT *
+FROM ProdejniZprava
+WHERE Celkove_Prodano > 100;
 
-        -- Informace o celkove trzbe (soucet jednotlivych trzeb leku) --
-        SELECT SUM(Trzba) AS Celkova_Trzba
-        FROM ProdejniZprava;
+-- Informace o celkove trzbe (soucet jednotlivych trzeb leku) --
+SELECT SUM(Trzba) AS Celkova_Trzba
+FROM ProdejniZprava;
+
+-- SLOW
+EXPLAIN PLAN FOR
+SELECT l.Nazev         AS Nazev_Leku,
+       SUM(v.Mnozstvi) AS Celkove_Vydano
+FROM Lek l
+         JOIN
+     Vydej v ON l.ID_leku = v.ID_leku
+GROUP BY l.Nazev;
+
+
+-- Create index on Lek table
+CREATE INDEX idx_lek_id_leku ON Lek (ID_leku);
+
+-- FAST
+EXPLAIN PLAN FOR
+SELECT l.Nazev         AS Nazev_Leku,
+       SUM(v.Mnozstvi) AS Celkove_Vydano
+FROM Lek l
+         JOIN
+     Vydej v ON l.ID_leku = v.ID_leku
+GROUP BY l.Nazev;
+
+-- Drop index on Lek table
+DROP INDEX idx_lek_id_leku;
 
 
 /*
