@@ -1,4 +1,14 @@
-# IDS - Lékárenský informační systém
+# IDS
+Řešení projektu do předmětu databázové systémy
+
+# Osobní hodnocení předmětu
+Dle mého je předmět kvalitní a hodně povedený. Přednášky jsou trošku nudnější, ale koho to vyloženě zajímá, dobře pro něj.
+Asi jeden z nejlehčích projektů, co je na bakaláři. Prakticky zadarmo. Jednoduché zadání, mírné hodnocení a dá to 
+všechny důležité informace do dalších předmětů. Zkouška je potom jedna z náročnějších, kdo dával pozor na přednáškách by ale neměl mít žádný 
+problém. Doporučuju projít zadání z minulých let a sám si to propočítat. Nepodceňte teorii.
+
+## Hodnocení projektu *33b/34b*
+Žádné výtky.
 
 ## Popis projektu
 
